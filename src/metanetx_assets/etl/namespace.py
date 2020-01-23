@@ -64,7 +64,7 @@ def patch_namespace(prefix: Literal["envipath", "name"]) -> Optional[Namespace]:
             name="enviPath",
             pattern=r"^.+$",
             description="A placeholder until envipath is added to the Identifiers.org "
-                        "registry.",
+            "registry.",
             **kwargs,
         )
     else:
@@ -94,7 +94,8 @@ def extract_namespace_mapping(
     old_value = IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name
     IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name = True
     mapping = {
-        prefix: IdentifiersOrgNamespaceModel(**obj) for prefix, obj in mapping.items()
+        prefix: IdentifiersOrgNamespaceModel.parse_obj(obj)
+        for prefix, obj in mapping.items()
     }
     IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name = old_value
     return mapping

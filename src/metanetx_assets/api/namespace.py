@@ -46,7 +46,7 @@ def download_namespace_mapping(
     """
     response = httpx.get(url)
     response.raise_for_status()
-    registry = IdentifiersOrgRegistryModel(**response.json())
+    registry = IdentifiersOrgRegistryModel.parse_raw(response.text)
     return {
         namespace.prefix: namespace.dict() for namespace in registry.payload.namespaces
     }

@@ -15,8 +15,4 @@
 
 """Provide the top-level public API."""
 
-from .namespace import et_namespaces, extract_namespace_mapping, extract_prefixes
-from .compartment import (
-    extract_compartment_properties,
-    extract_compartment_cross_references,
-)
+from .namespace import download_namespace_mapping, transform_namespaces

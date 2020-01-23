@@ -15,7 +15,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Schema
+from pydantic import BaseModel, Field
 
 
 class IdentifiersOrgNamespaceModel(BaseModel):
@@ -29,12 +29,12 @@ class IdentifiersOrgNamespaceModel(BaseModel):
     """
 
     prefix: str
-    miriam_id: str = Schema(
+    miriam_id: str = Field(
         ..., alias="mirId", regex=r"^MIR:\d{8}$", min_length=12, max_length=12
     )
     name: str
     pattern: str
     description: str
-    embedded_prefix: bool = Schema(..., alias="namespaceEmbeddedInLui")
-    created_on: datetime = Schema(..., alias="created")
-    updated_on: datetime = Schema(..., alias="modified")
+    embedded_prefix: bool = Field(..., alias="namespaceEmbeddedInLui")
+    created_on: datetime = Field(..., alias="created")
+    updated_on: datetime = Field(..., alias="modified")

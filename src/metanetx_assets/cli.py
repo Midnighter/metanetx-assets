@@ -38,7 +38,8 @@ from sqlalchemy.orm import sessionmaker
 
 from cobra_component_models.orm import Base
 
-from .api import et_namespaces, extract_prefixes, extract_namespace_mapping
+from .api import download_namespace_mapping, transform_namespaces
+from .etl import extract_namespace_mapping, extract_table, get_required_prefixes
 
 
 logger = logging.getLogger()
@@ -68,20 +69,6 @@ def cli():
 
 @cli.command()
 @click.help_option("--help", "-h")
-@click.argument(
-    "filename", type=click.Path(exists=False, dir_okay=False, writable=True)
-)
-def etl_namespaces(filename: Path):
-    mapping = et_namespaces()
-    logger.info("Loading...")
-    with Path(filename).open(mode="w") as handle:
-        # We have to convert `datetime` objects to their string representations to be
-        # JSON compatible thus the argument `default=str`.
-        json.dump(mapping, handle, indent=None, separators=(",", ":"), default=str)
-
-
-@cli.command()
-@click.help_option("--help", "-h")
 @click.argument("db-uri", metavar="<URI>")
 @click.option(
     "--drop",
@@ -100,6 +87,21 @@ def init(db_uri, drop):
     if drop.lower().startswith("y"):
         Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+
+@cli.command()
+@click.help_option("--help", "-h")
+@click.argument(
+    "filename", type=click.Path(exists=False, dir_okay=False, writable=True)
+)
+def extract_registry(filename: Path):
+    logger.info("Extracting Identifiers.org registry...")
+    mapping = download_namespace_mapping()
+    logger.info("Loading...")
+    with Path(filename).open(mode="w") as handle:
+        # We have to convert `datetime` objects to their string representations to be
+        # JSON compatible thus the argument `default=str`.
+        json.dump(mapping, handle, indent=None, separators=(",", ":"), default=str)
 
 
 @cli.command()
@@ -126,14 +128,20 @@ def init(db_uri, drop):
 @click.argument(
     "reac-xref", metavar="<REAC_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
-def namespaces(
-    db_uri: str, registry: click.Path, chem_prop: click.Path, chem_xref: click.Path,
-    comp_prop: click.Path, comp_xref: click.Path,
-    reac_prop: click.Path, reac_xref: click.Path,
+def etl_namespaces(
+    db_uri: str,
+    registry: click.Path,
+    chem_prop: click.Path,
+    chem_xref: click.Path,
+    comp_prop: click.Path,
+    comp_xref: click.Path,
+    reac_prop: click.Path,
+    reac_xref: click.Path,
 ):
     """
-    Load the compartment information into a database.
+    Load the Identifiers.org namespaces used in MetaNetX.
 
+    \b
     URI is a string interpreted as an rfc1738 compatible database URI.
     REGISTRY is a JSON file containing the Identifiers.org registry.
     CHEM_PROP is a MetaNetX table with chemical property information.
@@ -148,100 +156,16 @@ def namespaces(
     session = Session(bind=engine)
     logger.info("Extracting...")
     namespace_mapping = extract_namespace_mapping(Path(registry))
-    used_namespaces = set()
-    used_namespaces.update(extract_prefixes(Path(comp_prop)))
-    used_namespaces.update(extract_prefixes(Path(comp_xref)))
-    used_namespaces.update(extract_prefixes(Path(comp_prop)))
-    used_namespaces.update(extract_prefixes(Path(comp_xref)))
-    used_namespaces.update(extract_prefixes(Path(comp_prop)))
-    used_namespaces.update(extract_prefixes(Path(comp_xref)))
+    prefixes = get_required_prefixes(
+        extract_table(Path(chem_prop)),
+        extract_table(Path(chem_xref)),
+        extract_table(Path(comp_prop)),
+        extract_table(Path(comp_xref)),
+        extract_table(Path(reac_prop)),
+        extract_table(Path(reac_xref)),
+    )
     logger.info("Transforming...")
-    # TODO: Create ORM object of required namespaces.
-
-
-@cli.command()
-@click.help_option("--help", "-h")
-@click.argument("db-uri", metavar="<URI>")
-@click.argument(
-    "registry", metavar="<REGISTRY>", type=click.Path(exists=True, dir_okay=False)
-)
-@click.argument(
-    "comp-prop", metavar="<COMP_PROP>", type=click.Path(exists=True, dir_okay=False)
-)
-@click.argument(
-    "comp-xref", metavar="<COMP_XREF>", type=click.Path(exists=True, dir_okay=False)
-)
-def compartments(
-    db_uri: str, registry: click.Path, comp_prop: click.Path, comp_xref: click.Path,
-):
-    """
-    Load the compartment information into a database.
-
-    URI is a string interpreted as an rfc1738 compatible database URI.
-    REGISTRY is a JSON file containing the Identifiers.org registry.
-    COMP_PROP is a MetaNetX table with compartment property information.
-    COMP_XREF is a MetaNetX table with compartment cross-references.
-
-    """
-    engine = create_engine(db_uri)
-    session = Session(bind=engine)
-    logger.info("Extracting...")
-    namespace_mapping = extract_namespace_mapping(Path(registry))
-    comp_prop = extract_compartment_properties(Path(comp_prop))
-    comp_xref = extract_compartment_cross_references(Path(comp_xref))
-    logger.info("Transforming...")
-
-
-@cli.command()
-@click.help_option("--help", "-h")
-@click.option(
-    "--db-url",
-    metavar="URL",
-    show_default=True,
-    help="A string interpreted as an rfc1738 compatible database URL.",
-)
-@click.option(
-    "--update/--no-update",
-    default=True,
-    show_default=True,
-    help="Check the MetaNetX FTP server for updated tables.",
-)
-@click.option(
-    "--batch-size",
-    type=int,
-    default=1000,
-    show_default=True,
-    help="The size of batches of compounds to transform at a time.",
-)
-@click.argument(
-    "working_dir",
-    metavar="<METANETX PATH>",
-    type=click.Path(exists=True, file_okay=False, writable=True),
-)
-@click.argument(
-    "additional-compounds",
-    metavar="<ADDITIONAL COMPOUNDS>",
-    type=click.Path(exists=True, dir_okay=False),
-)
-def chemicals(
-    working_dir: click.Path,
-    additional_compounds: click.Path,
-    db_url: str,
-    update: bool,
-    batch_size: int,
-):
-    """Drop any existing tables and populate the database using MetaNetX."""
-    engine = create_engine(db_url)
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    session = Session(bind=engine)
-    logger.info("Populating registries.")
-    registry.populate_registries(session, chem_xref)
-    logger.info("Loading compound properties.")
-    chem_prop = metanetx.load_compound_properties(str(working_dir))
-    logger.info("Populating compounds.")
-    compounds.populate_compounds(session, chem_prop, chem_xref, batch_size)
-    logger.info("Populating additional compounds.")
-    compounds.populate_additional_compounds(session, additional_compounds)
-    logger.info("Filling in missing InChIs from KEGG.")
-    compounds.fetch_kegg_missing_inchis(session)
+    namespaces = transform_namespaces(namespace_mapping, prefixes)
+    logger.info("Loading...")
+    session.bulk_save_objects(namespaces)
+    session.commit()

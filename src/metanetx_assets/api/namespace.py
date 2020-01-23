@@ -15,17 +15,16 @@
 
 """Provide namespace ETL functions."""
 
-
-import json
 import logging
-from pathlib import Path
-from typing import Dict, Set
-
-from sqlalchemy.orm import sessionmaker
+from typing import Dict, List, Set
 
 import httpx
+from sqlalchemy.orm import sessionmaker
+from tqdm import tqdm
 
-from ..etl import extract_table
+from cobra_component_models.orm import Namespace
+
+from ..etl import patch_namespace
 from ..model import IdentifiersOrgNamespaceModel, IdentifiersOrgRegistryModel
 
 
@@ -33,25 +32,11 @@ logger = logging.getLogger()
 Session = sessionmaker()
 
 
-def extract_prefixes(filename: Path) -> Set[str]:
+def download_namespace_mapping(
+    url: str = "https://registry.api.identifiers.org/resolutionApi/getResolverDataset",
+) -> Dict[str, dict]:
     """
-
-    Parameters
-    ----------
-    filename
-
-    Returns
-    -------
-
-    """
-    df = extract_table(filename)
-    # TODO: Validate with goodtables.
-    return set(df["prefix"].unique())
-
-
-def et_namespaces() -> Dict[str, dict]:
-    """
-    Extract and transform all namespaces from the Identifiers.org registry.
+    Extract all namespaces from the Identifiers.org registry.
 
     Returns
     -------
@@ -59,42 +44,23 @@ def et_namespaces() -> Dict[str, dict]:
         A map from namespace prefixes to namespace objects.
 
     """
-    logger.info("Downloading all namespaces...")
-    response = httpx.get(
-        "https://registry.api.identifiers.org/resolutionApi/getResolverDataset"
-    )
+    response = httpx.get(url)
     response.raise_for_status()
-    logger.info("Extracting...")
     registry = IdentifiersOrgRegistryModel(**response.json())
-    logger.info("Transforming...")
     return {
         namespace.prefix: namespace.dict() for namespace in registry.payload.namespaces
     }
 
 
-def extract_namespace_mapping(
-    filename: Path,
-) -> Dict[str, IdentifiersOrgNamespaceModel]:
-    """
-    Extract a namespace mapping from a JSON file.
-
-    Parameters
-    ----------
-    filename : pathlib.Path
-        The path to the JSON file.
-
-    Returns
-    -------
-    dict
-        A map from namespace prefixes to Identifiers.org namespace data models.
-
-    """
-    with filename.open(mode="r") as handle:
-        mapping = json.load(handle)
-    old_value = IdentifiersOrgNamespaceModel.Config.allow_population_by_alias
-    IdentifiersOrgNamespaceModel.Config.allow_population_by_alias = True
-    mapping = {
-        prefix: IdentifiersOrgNamespaceModel(**obj) for prefix, obj in mapping.items()
-    }
-    IdentifiersOrgNamespaceModel.Config.allow_population_by_alias = old_value
-    return mapping
+def transform_namespaces(
+    namespace_mapping: Dict[str, IdentifiersOrgNamespaceModel], prefixes: Set[str]
+):
+    models: List[Namespace] = []
+    for prefix in tqdm(prefixes, desc="Namespace"):
+        try:
+            models.append(Namespace(**namespace_mapping[prefix].dict()))
+        except KeyError:
+            model = patch_namespace(prefix)
+            if model:
+                models.append(model)
+    return models

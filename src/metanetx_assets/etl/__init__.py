@@ -17,4 +17,9 @@
 
 
 from .helpers import extract_table
-from .namespace import load_missing_namespaces
+from .namespace import (
+    patch_namespace,
+    get_unique_prefixes,
+    get_required_prefixes,
+    extract_namespace_mapping,
+)

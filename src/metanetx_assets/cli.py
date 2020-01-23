@@ -33,10 +33,9 @@ from pathlib import Path
 
 import click
 import click_log
+from cobra_component_models.orm import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from cobra_component_models.orm import Base
 
 from .api import download_namespace_mapping, transform_namespaces
 from .etl import extract_namespace_mapping, extract_table, get_required_prefixes

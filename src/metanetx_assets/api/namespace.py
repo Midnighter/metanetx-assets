@@ -19,10 +19,9 @@ import logging
 from typing import Dict, List, Set
 
 import httpx
+from cobra_component_models.orm import Namespace
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
-
-from cobra_component_models.orm import Namespace
 
 from ..etl import patch_namespace
 from ..model import IdentifiersOrgNamespaceModel, IdentifiersOrgRegistryModel

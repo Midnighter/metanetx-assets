@@ -26,15 +26,14 @@
 """Populate and fix information on Identifiers.org namespaces."""
 
 
-import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Set, Tuple
 
 import pandas as pd
-from tqdm import tqdm
-
 from cobra_component_models.orm import Namespace
+from pydantic import parse_file_as
+from tqdm import tqdm
 
 from ..model import IdentifiersOrgNamespaceModel
 
@@ -89,14 +88,9 @@ def extract_namespace_mapping(
         A map from namespace prefixes to Identifiers.org namespace data models.
 
     """
-    with filename.open(mode="r") as handle:
-        mapping = json.load(handle)
     old_value = IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name
     IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name = True
-    mapping = {
-        prefix: IdentifiersOrgNamespaceModel.parse_obj(obj)
-        for prefix, obj in mapping.items()
-    }
+    mapping = parse_file_as(Dict[str, IdentifiersOrgNamespaceModel], filename)
     IdentifiersOrgNamespaceModel.Config.allow_population_by_field_name = old_value
     return mapping
 

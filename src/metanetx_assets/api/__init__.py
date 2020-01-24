@@ -16,3 +16,4 @@
 """Provide the top-level public API."""
 
 from .namespace import download_namespace_mapping, transform_namespaces
+from .compartment import etl_compartments

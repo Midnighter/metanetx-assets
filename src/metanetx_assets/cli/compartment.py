@@ -31,12 +31,12 @@ import logging
 from pathlib import Path
 
 import click
-from cobra_component_models.orm import Namespace
+from cobra_component_models.orm import BiologyQualifier, Namespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# from ..api import
-from ..etl import extract_table
+from ..api import etl_compartments
+from ..etl import extract_table, get_unique_prefixes
 
 
 logger = logging.getLogger(__name__)
@@ -62,9 +62,7 @@ def compartments():
     "comp-xref", metavar="<COMP_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
 def etl(
-    db_uri: str,
-    comp_prop: click.Path,
-    comp_xref: click.Path,
+    db_uri: str, comp_prop: click.Path, comp_xref: click.Path,
 ):
     """
     Extract, transform, and load the compartments used in MetaNetX.
@@ -78,11 +76,19 @@ def etl(
     engine = create_engine(db_uri)
     session = Session(bind=engine)
     logger.info("Extracting...")
-    namespace_mapping = Namespace.get_map(session)
     compartments = extract_table(Path(comp_prop))
     cross_references = extract_table(Path(comp_xref))
+    prefixes = get_unique_prefixes(compartments).union(
+        get_unique_prefixes(cross_references)
+    )
+    namespace_mapping = Namespace.get_map(session, prefixes)
+    qualifier_mapping = BiologyQualifier.get_map(session)
     logger.info("Transforming...")
-
     logger.info("Loading...")
-    session.bulk_save_objects(models)
-    session.commit()
+    etl_compartments(
+        session,
+        compartments,
+        cross_references,
+        namespace_mapping,
+        qualifier_mapping["is"],
+    )

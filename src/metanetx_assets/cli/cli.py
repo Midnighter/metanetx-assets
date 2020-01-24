@@ -32,12 +32,12 @@ import os
 
 import click
 import click_log
-from cobra_component_models.orm import Base
+from cobra_component_models.orm import Base, BiologyQualifier
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .namespace import namespaces
 from .compartment import compartments
+from .namespace import namespaces
 
 
 logger = logging.getLogger()
@@ -87,6 +87,7 @@ def init(db_uri, drop):
     if drop.lower().startswith("y"):
         Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    BiologyQualifier.load(Session(bind=engine))
 
 
 cli.add_command(namespaces)

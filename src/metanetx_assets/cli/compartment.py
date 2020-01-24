@@ -36,7 +36,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from ..api import etl_compartments
-from ..etl import extract_table, get_unique_prefixes
+from ..etl import extract_table
 
 
 logger = logging.getLogger(__name__)
@@ -78,10 +78,7 @@ def etl(
     logger.info("Extracting...")
     compartments = extract_table(Path(comp_prop))
     cross_references = extract_table(Path(comp_xref))
-    prefixes = get_unique_prefixes(compartments).union(
-        get_unique_prefixes(cross_references)
-    )
-    namespace_mapping = Namespace.get_map(session, prefixes)
+    namespace_mapping = Namespace.get_map(session)
     qualifier_mapping = BiologyQualifier.get_map(session)
     logger.info("Transforming...")
     logger.info("Loading...")

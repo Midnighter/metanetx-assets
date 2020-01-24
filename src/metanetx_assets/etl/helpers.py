@@ -35,4 +35,6 @@ def extract_table(filename: Path) -> pd.DataFrame:
     pandas.DataFrame
 
     """
+    # TODO: We probably want to split this up into the separate tables and do
+    #  validation on them.
     return pd.read_csv(filename, sep="\t", header=0)

@@ -23,70 +23,65 @@
 # THE SOFTWARE.
 
 
-"""Define the command line interface (CLI) for generating assets."""
+"""Define the CLI for generating compartment assets."""
 
 
 import logging
-import os
+from pathlib import Path
 
 import click
-import click_log
-from cobra_component_models.orm import Base
+from cobra_component_models.orm import Namespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .namespace import namespaces
-from .compartment import compartments
+# from ..api import
+from ..etl import extract_table
 
 
-logger = logging.getLogger()
-click_log.basic_config(logger)
+logger = logging.getLogger(__name__)
 
 
 Session = sessionmaker()
 
 
-try:
-    NUM_PROCESSES = len(os.sched_getaffinity(0))
-except OSError:
-    logger.warning("Could not determine the number of cores available - assuming 1.")
-    NUM_PROCESSES = 1
-
-
 @click.group()
 @click.help_option("--help", "-h")
-@click_log.simple_verbosity_option(
-    logger,
-    default="INFO",
-    show_default=True,
-    type=click.Choice(["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG"]),
-)
-def cli():
-    """Command line interface to load the MetaNetX content into data models."""
+def compartments():
+    """Subcommand for processing compartments."""
     pass
 
 
-@cli.command()
+@compartments.command()
 @click.help_option("--help", "-h")
 @click.argument("db-uri", metavar="<URI>")
-@click.option(
-    "--drop",
-    prompt="Do you *really* want to drop all existing tables in the given database?",
-    default="N/y",
-    help="Confirm that you want to drop all existing tables in the database.",
+@click.argument(
+    "comp-prop", metavar="<COMP_PROP>", type=click.Path(exists=True, dir_okay=False)
 )
-def init(db_uri, drop):
+@click.argument(
+    "comp-xref", metavar="<COMP_XREF>", type=click.Path(exists=True, dir_okay=False)
+)
+def etl(
+    db_uri: str,
+    comp_prop: click.Path,
+    comp_xref: click.Path,
+):
     """
-    Drop any existing tables and create the SBML classes schema.
+    Extract, transform, and load the compartments used in MetaNetX.
 
+    \b
     URI is a string interpreted as an rfc1738 compatible database URI.
+    COMP_PROP is a MetaNetX table with compartment property information.
+    COMP_XREF is a MetaNetX table with compartment cross-references.
 
     """
     engine = create_engine(db_uri)
-    if drop.lower().startswith("y"):
-        Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    session = Session(bind=engine)
+    logger.info("Extracting...")
+    namespace_mapping = Namespace.get_map(session)
+    compartments = extract_table(Path(comp_prop))
+    cross_references = extract_table(Path(comp_xref))
+    logger.info("Transforming...")
 
-
-cli.add_command(namespaces)
-cli.add_command(compartments)
+    logger.info("Loading...")
+    session.bulk_save_objects(models)
+    session.commit()

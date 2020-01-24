@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 
 
-"""Define the command line interface (CLI) for generating assets."""
+"""Define the CLI for generating namespace assets."""
 
 
 import json
@@ -34,8 +34,8 @@ import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .api import download_namespace_mapping, transform_namespaces
-from .etl import extract_namespace_mapping, extract_table, get_required_prefixes
+from ..api import download_namespace_mapping, transform_namespaces
+from ..etl import extract_namespace_mapping, extract_table, get_required_prefixes
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ def namespaces():
     "filename", type=click.Path(exists=False, dir_okay=False, writable=True)
 )
 def extract_registry(filename: Path):
+    """Download the Identifiers.org registry of namespaces."""
     logger.info("Extracting Identifiers.org registry...")
     mapping = download_namespace_mapping()
     logger.info("Loading...")
@@ -90,7 +91,7 @@ def extract_registry(filename: Path):
 @click.argument(
     "reac-xref", metavar="<REAC_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
-def etl_namespaces(
+def etl(
     db_uri: str,
     registry: click.Path,
     chem_prop: click.Path,
@@ -101,7 +102,7 @@ def etl_namespaces(
     reac_xref: click.Path,
 ):
     """
-    Load the Identifiers.org namespaces used in MetaNetX.
+    Extract, transform, and load the namespaces used in MetaNetX.
 
     \b
     URI is a string interpreted as an rfc1738 compatible database URI.

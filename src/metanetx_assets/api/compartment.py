@@ -62,7 +62,9 @@ def etl_compartments(
     with tqdm(total=len(compartments), desc="Compartment") as pbar:
         for index in range(0, len(compartments), batch_size):
             models = []
-            for row in compartments.iloc[index : index + batch_size, :].itertuples(index=False):
+            for row in compartments.iloc[index : index + batch_size, :].itertuples(
+                index=False
+            ):
                 logger.debug(row.mnx_id)
                 # We first collect names and identifiers such that we insert only
                 # unique names per namespace.

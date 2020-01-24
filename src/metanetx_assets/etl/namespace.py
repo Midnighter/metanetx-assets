@@ -55,9 +55,17 @@ def load_namespaces(
 def patch_namespace(prefix: Literal["envipath", "name"]) -> Optional[Namespace]:
     """Create an entry similar to a registry defined by identifiers.org."""
     if prefix == "name":
+        logger.warning(
+            "The prefix 'name' is not a namespace in the Identifiers.org registry. "
+            "Ignored."
+        )
         return None
     kwargs = {"prefix": prefix, "embedded_prefix": False}
     if prefix == "envipath":
+        logger.warning(
+            "The prefix 'envipath' is not yet contained in the Identifiers.org "
+            "registry. Creating a placeholder."
+        )
         model = Namespace(
             miriam_id="MIR:00000000",
             name="enviPath",

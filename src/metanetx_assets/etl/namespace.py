@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 #
+# Copyright (c) 2019-2020, Moritz E. Beber.
 # Copyright (c) 2018 Institute for Molecular Systems Biology, ETH Zurich.
 # Copyright (c) 2018 Novo Nordisk Foundation Center for Biosustainability,
 # Technical University of Denmark

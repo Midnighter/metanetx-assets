@@ -28,12 +28,9 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 
 import click
-import click_log
-from cobra_component_models.orm import Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -41,54 +38,20 @@ from .api import download_namespace_mapping, transform_namespaces
 from .etl import extract_namespace_mapping, extract_table, get_required_prefixes
 
 
-logger = logging.getLogger()
-click_log.basic_config(logger)
+logger = logging.getLogger(__name__)
+
+
 Session = sessionmaker()
-
-
-try:
-    NUM_PROCESSES = len(os.sched_getaffinity(0))
-except OSError:
-    logger.warning("Could not determine the number of cores available - assuming 1.")
-    NUM_PROCESSES = 1
 
 
 @click.group()
 @click.help_option("--help", "-h")
-@click_log.simple_verbosity_option(
-    logger,
-    default="INFO",
-    show_default=True,
-    type=click.Choice(["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG"]),
-)
-def cli():
-    """Command line interface to load the MetaNetX content into data models."""
+def namespaces():
+    """Subcommand for processing Identifiers.org namespaces."""
     pass
 
 
-@cli.command()
-@click.help_option("--help", "-h")
-@click.argument("db-uri", metavar="<URI>")
-@click.option(
-    "--drop",
-    prompt="Do you *really* want to drop all existing tables in the given database?",
-    default="N/y",
-    help="Confirm that you want to drop all existing tables in the database.",
-)
-def init(db_uri, drop):
-    """
-    Drop any existing tables and create the SBML classes schema.
-
-    URI is a string interpreted as an rfc1738 compatible database URI.
-
-    """
-    engine = create_engine(db_uri)
-    if drop.lower().startswith("y"):
-        Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-
-@cli.command()
+@namespaces.command()
 @click.help_option("--help", "-h")
 @click.argument(
     "filename", type=click.Path(exists=False, dir_okay=False, writable=True)
@@ -103,7 +66,7 @@ def extract_registry(filename: Path):
         json.dump(mapping, handle, indent=None, separators=(",", ":"), default=str)
 
 
-@cli.command()
+@namespaces.command()
 @click.help_option("--help", "-h")
 @click.argument("db-uri", metavar="<URI>")
 @click.argument(

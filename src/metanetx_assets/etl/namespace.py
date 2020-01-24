@@ -28,28 +28,16 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Set, Tuple
+from typing import Dict, Literal, Optional, Set
 
 import pandas as pd
 from cobra_component_models.orm import Namespace
 from pydantic import parse_file_as
-from tqdm import tqdm
 
 from ..model import IdentifiersOrgNamespaceModel
 
 
 logger = logging.getLogger(__name__)
-
-
-def load_namespaces(
-    namespaces: List[Tuple[str, IdentifiersOrgNamespaceModel]], session
-) -> Dict[str, Namespace]:
-    namespace_map = {}
-    for prefix, ns_model in tqdm(namespaces, desc="Namespace"):
-        namespace_map[prefix] = namespace = Namespace(**ns_model.dict())
-        session.add(namespace)
-    session.commit()
-    return namespace_map
 
 
 def patch_namespace(prefix: Literal["envipath", "name"]) -> Optional[Namespace]:

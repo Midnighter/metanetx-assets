@@ -66,7 +66,7 @@ def etl_compounds(
     with tqdm(total=len(deduped), desc="Compound") as pbar:
         for index in range(0, len(deduped), batch_size):
             models = []
-            for row in deduped.loc[index : index + batch_size, :].itertuples(index=False):
+            for row in deduped.iloc[index : index + batch_size, :].itertuples(index=False):
                 logger.debug(row.mnx_id)
                 comp = Compound(
                     inchi=row.inchi,
@@ -133,7 +133,7 @@ def etl_compounds(
     with tqdm(total=len(dupes), desc="Compound") as pbar:
         for index in range(0, len(dupes), batch_size):
             models = []
-            for row in dupes.loc[index : index + batch_size, :].itertuples(index=False):
+            for row in dupes.iloc[index : index + batch_size, :].itertuples(index=False):
                 logger.debug(row.mnx_id)
                 comp = session.query(Compound).filter(Compound.inchi_key == row.inchi_key).one()
                 # We collect names and identifiers such that we insert only

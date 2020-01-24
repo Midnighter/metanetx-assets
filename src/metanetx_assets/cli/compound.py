@@ -24,73 +24,70 @@
 # THE SOFTWARE.
 
 
-"""Define the command line interface (CLI) for generating assets."""
+"""Define the CLI for generating compound assets."""
 
 
 import logging
-import os
+from pathlib import Path
 
 import click
-import click_log
-from cobra_component_models.orm import Base, BiologyQualifier
+from cobra_component_models.orm import BiologyQualifier, Namespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .compartment import compartments
-from .compound import compounds
-from .namespace import namespaces
+from ..api import etl_compounds
+from ..etl import extract_table
 
 
-logger = logging.getLogger()
-click_log.basic_config(logger)
+logger = logging.getLogger(__name__)
 
 
 Session = sessionmaker()
 
 
-try:
-    NUM_PROCESSES = len(os.sched_getaffinity(0))
-except OSError:
-    logger.warning("Could not determine the number of cores available - assuming 1.")
-    NUM_PROCESSES = 1
-
-
 @click.group()
 @click.help_option("--help", "-h")
-@click_log.simple_verbosity_option(
-    logger,
-    default="INFO",
-    show_default=True,
-    type=click.Choice(["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG"]),
-)
-def cli():
-    """Command line interface to load the MetaNetX content into data models."""
+def compounds():
+    """Subcommand for processing compounds."""
     pass
 
 
-@cli.command()
+@compounds.command()
 @click.help_option("--help", "-h")
 @click.argument("db-uri", metavar="<URI>")
-@click.option(
-    "--drop",
-    prompt="Do you *really* want to drop all existing tables in the given database?",
-    default="N/y",
-    help="Confirm that you want to drop all existing tables in the database.",
+@click.argument(
+    "chem-prop", metavar="<CHEM_PROP>", type=click.Path(exists=True, dir_okay=False)
 )
-def init(db_uri, drop):
+@click.argument(
+    "chem-xref", metavar="<CHEM_XREF>", type=click.Path(exists=True, dir_okay=False)
+)
+def etl(
+    db_uri: str,
+    chem_prop: click.Path,
+    chem_xref: click.Path,
+):
     """
-    Drop any existing tables and create the SBML classes schema.
+    Extract, transform, and load the compounds used in MetaNetX.
 
+    \b
     URI is a string interpreted as an rfc1738 compatible database URI.
+    CHEM_PROP is a MetaNetX table with chemical property information.
+    CHEM_XREF is a MetaNetX table with chemical cross-references.
 
     """
     engine = create_engine(db_uri)
-    if drop.lower().startswith("y"):
-        Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    BiologyQualifier.load(Session(bind=engine))
-
-
-cli.add_command(namespaces)
-cli.add_command(compartments)
-cli.add_command(compounds)
+    session = Session(bind=engine)
+    logger.info("Extracting...")
+    compounds = extract_table(Path(chem_prop))
+    cross_references = extract_table(Path(chem_xref))
+    namespace_mapping = Namespace.get_map(session)
+    qualifier_mapping = BiologyQualifier.get_map(session)
+    logger.info("Transforming...")
+    logger.info("Loading...")
+    etl_compounds(
+        session,
+        compounds,
+        cross_references,
+        namespace_mapping,
+        qualifier_mapping["is"],
+    )

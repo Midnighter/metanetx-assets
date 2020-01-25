@@ -193,6 +193,6 @@ def etl_compounds(
                     )
                 comp.annotation = annotation
                 models.append(comp)
-            session.bulk_save_objects(models)
+            session.add_all(models)
             session.commit()
             pbar.update(len(models))

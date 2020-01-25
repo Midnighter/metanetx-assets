@@ -128,8 +128,10 @@ def etl(
         extract_table(Path(reac_prop)),
         extract_table(Path(reac_xref)),
     )
+    # MetaNetX also contains EC-codes but in a separate column without prefix.
+    prefixes.add("ec-code")
     logger.info("Transforming...")
     namespaces = transform_namespaces(namespace_mapping, prefixes)
     logger.info("Loading...")
-    session.bulk_save_objects(namespaces)
+    session.add_all(namespaces)
     session.commit()

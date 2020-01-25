@@ -39,6 +39,7 @@ from sqlalchemy.orm import sessionmaker
 from .compartment import compartments
 from .compound import compounds
 from .namespace import namespaces
+from .reaction import reactions
 
 
 logger = logging.getLogger()
@@ -94,3 +95,4 @@ def init(db_uri, drop):
 cli.add_command(namespaces)
 cli.add_command(compartments)
 cli.add_command(compounds)
+cli.add_command(reactions)

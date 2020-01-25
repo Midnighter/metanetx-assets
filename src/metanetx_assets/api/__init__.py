@@ -18,3 +18,4 @@
 from .namespace import download_namespace_mapping, transform_namespaces
 from .compartment import etl_compartments
 from .compound import etl_compounds
+from .reaction import etl_reactions

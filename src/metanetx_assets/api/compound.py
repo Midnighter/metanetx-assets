@@ -182,7 +182,7 @@ def etl_compounds(
                     except KeyError:
                         logger.error(f"Unknown prefix '{prefix}' encountered.")
                         continue
-                    existing = existing_names[prefix]
+                    existing = existing_names.get(prefix, frozenset())
                     name_models.extend(
                         CompoundName(name=n, namespace=namespace)
                         for n in sub_names
@@ -196,7 +196,7 @@ def etl_compounds(
                     except KeyError:
                         logger.error(f"Unknown prefix '{prefix}' encountered.")
                         continue
-                    existing = existing_annotation[prefix]
+                    existing = existing_annotation.get(prefix, frozenset())
                     annotation.extend(
                         CompoundAnnotation(
                             identifier=i,

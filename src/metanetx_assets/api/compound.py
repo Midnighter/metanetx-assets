@@ -127,7 +127,7 @@ def etl_compounds(
                     )
                 comp.annotation = annotation
                 models.append(comp)
-            session.bulk_save_objects(models)
+            session.add_all(models)
             session.commit()
             pbar.update(len(models))
     # Now we add names and identifiers for duplicated structures.
@@ -144,6 +144,16 @@ def etl_compounds(
                     .filter(Compound.inchi_key == row.inchi_key)
                     .one()
                 )
+                existing_names = {}
+                for name in comp.names:
+                    existing_names.setdefault(name.namespace.prefix, set()).add(
+                        name.name
+                    )
+                existing_annotation = {}
+                for identifier in comp.annotation:
+                    existing_annotation.setdefault(
+                        identifier.namespace.prefix, set()
+                    ).add(identifier.identifier)
                 # We collect names and identifiers such that we insert only
                 # unique names per namespace.
                 names = {}
@@ -172,10 +182,13 @@ def etl_compounds(
                     except KeyError:
                         logger.error(f"Unknown prefix '{prefix}' encountered.")
                         continue
+                    existing = existing_names[prefix]
                     name_models.extend(
-                        CompoundName(name=n, namespace=namespace) for n in sub_names
+                        CompoundName(name=n, namespace=namespace)
+                        for n in sub_names
+                        if n not in existing
                     )
-                comp.names = name_models
+                comp.names.extend(name_models)
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
                     try:
@@ -183,6 +196,7 @@ def etl_compounds(
                     except KeyError:
                         logger.error(f"Unknown prefix '{prefix}' encountered.")
                         continue
+                    existing = existing_annotation[prefix]
                     annotation.extend(
                         CompoundAnnotation(
                             identifier=i,
@@ -190,8 +204,9 @@ def etl_compounds(
                             biology_qualifier=qualifier,
                         )
                         for i in sub_ids
+                        if i not in existing
                     )
-                comp.annotation = annotation
+                comp.annotation.extend(annotation)
                 models.append(comp)
             session.add_all(models)
             session.commit()

@@ -23,3 +23,4 @@ from .namespace import (
     get_required_prefixes,
     extract_namespace_mapping,
 )
+from .reaction import EquationParser

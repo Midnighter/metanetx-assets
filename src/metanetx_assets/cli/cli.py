@@ -49,9 +49,8 @@ click_log.basic_config(logger)
 Session = sessionmaker()
 
 
-try:
-    NUM_PROCESSES = len(os.sched_getaffinity(0))
-except OSError:
+NUM_PROCESSES = os.cpu_count()
+if NUM_PROCESSES is None:
     logger.warning("Could not determine the number of cores available - assuming 1.")
     NUM_PROCESSES = 1
 

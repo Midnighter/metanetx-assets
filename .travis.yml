@@ -35,11 +35,14 @@ after_success:
 jobs:
   fast_finish: true
   include:
+  # See https://github.com/travis-ci/docs-travis-ci-com/pull/2544/
+  - stage: test
   - stage: deploy
     python: "3.8"
     install:
     - pip install --upgrade setuptools wheel
     script: skip
+    after_success: "Deploying..."
     deploy:
     - provider: pypi
       cleanup: false

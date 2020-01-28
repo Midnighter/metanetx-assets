@@ -30,12 +30,11 @@ import logging
 import typing
 
 import pandas as pd
+import pybel
 import requests
+from pybel import readstring
 from sqlalchemy import exists, or_
 from tqdm import tqdm
-
-import pybel
-from pybel import readstring
 
 
 logger = logging.getLogger(__name__)

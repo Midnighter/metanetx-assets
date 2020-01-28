@@ -48,6 +48,6 @@ It's as simple as:
 Copyright
 =========
 
-* Copyright (c) 2019, Moritz E. Beber.
+* Copyright (c) 2019-2020, Moritz E. Beber.
 * Free software distributed under the `Apache Software License 2.0 
   <https://www.apache.org/licenses/LICENSE-2.0>`_.

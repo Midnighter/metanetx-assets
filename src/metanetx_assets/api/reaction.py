@@ -98,7 +98,7 @@ def etl_reactions(
             ):
                 logger.debug(row.mnx_id)
                 reaction = Reaction()
-                reaction.participants = EquationParser.parse(
+                reaction.participants = EquationParser.parse_participants(
                     row.equation, compound_mapping, compartment_mapping
                 )
                 # We collect identifiers such that we insert only unique ones per

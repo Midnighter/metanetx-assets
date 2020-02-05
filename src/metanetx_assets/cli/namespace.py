@@ -32,6 +32,7 @@ import logging
 from pathlib import Path
 
 import click
+from cobra_component_models.orm import Base, Namespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -66,6 +67,23 @@ def extract_registry(filename: Path):
         # We have to convert `datetime` objects to their string representations to be
         # JSON compatible thus the argument `default=str`.
         json.dump(mapping, handle, indent=None, separators=(",", ":"), default=str)
+
+
+@namespaces.command()
+@click.help_option("--help", "-h")
+@click.argument("db-uri", metavar="<URI>")
+def reset(db_uri: str):
+    """
+    Reset the namespace tables.
+
+    \b
+    URI is a string interpreted as an rfc1738 compatible database URI.
+
+    """
+    logger.info("Resetting namespace tables...")
+    engine = create_engine(db_uri)
+    Base.metadata.drop_all(bind=engine, tables=[Namespace.__table__])
+    Base.metadata.create_all(bind=engine, tables=[Namespace.__table__])
 
 
 @namespaces.command()

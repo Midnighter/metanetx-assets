@@ -31,7 +31,14 @@ import logging
 from pathlib import Path
 
 import click
-from cobra_component_models.orm import BiologyQualifier, Namespace
+from cobra_component_models.orm import (
+    Base,
+    BiologyQualifier,
+    Namespace,
+    Reaction,
+    ReactionAnnotation,
+    ReactionName,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -50,6 +57,37 @@ Session = sessionmaker()
 def reactions():
     """Subcommand for processing reactions."""
     pass
+
+
+@reactions.command()
+@click.help_option("--help", "-h")
+@click.argument("db-uri", metavar="<URI>")
+def reset(db_uri: str):
+    """
+    Reset the reaction tables.
+
+    \b
+    URI is a string interpreted as an rfc1738 compatible database URI.
+
+    """
+    logger.info("Resetting reaction tables...")
+    engine = create_engine(db_uri)
+    Base.metadata.drop_all(
+        bind=engine,
+        tables=[
+            ReactionAnnotation.__table__,
+            ReactionName.__table__,
+            Reaction.__table__,
+        ],
+    )
+    Base.metadata.create_all(
+        bind=engine,
+        tables=[
+            ReactionAnnotation.__table__,
+            ReactionName.__table__,
+            Reaction.__table__,
+        ],
+    )
 
 
 @reactions.command()

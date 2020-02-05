@@ -31,7 +31,14 @@ import logging
 from pathlib import Path
 
 import click
-from cobra_component_models.orm import BiologyQualifier, Namespace
+from cobra_component_models.orm import (
+    Base,
+    BiologyQualifier,
+    Compartment,
+    CompartmentAnnotation,
+    CompartmentName,
+    Namespace,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -50,6 +57,37 @@ Session = sessionmaker()
 def compartments():
     """Subcommand for processing compartments."""
     pass
+
+
+@compartments.command()
+@click.help_option("--help", "-h")
+@click.argument("db-uri", metavar="<URI>")
+def reset(db_uri: str):
+    """
+    Reset the compartment tables.
+
+    \b
+    URI is a string interpreted as an rfc1738 compatible database URI.
+
+    """
+    logger.info("Resetting compartment tables...")
+    engine = create_engine(db_uri)
+    Base.metadata.drop_all(
+        bind=engine,
+        tables=[
+            CompartmentAnnotation.__table__,
+            CompartmentName.__table__,
+            Compartment.__table__,
+        ],
+    )
+    Base.metadata.create_all(
+        bind=engine,
+        tables=[
+            CompartmentAnnotation.__table__,
+            CompartmentName.__table__,
+            Compartment.__table__,
+        ],
+    )
 
 
 @compartments.command()

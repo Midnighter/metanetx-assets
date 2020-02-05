@@ -31,7 +31,14 @@ import logging
 from pathlib import Path
 
 import click
-from cobra_component_models.orm import BiologyQualifier, Namespace
+from cobra_component_models.orm import (
+    Base,
+    BiologyQualifier,
+    Compound,
+    CompoundAnnotation,
+    CompoundName,
+    Namespace,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -50,6 +57,37 @@ Session = sessionmaker()
 def compounds():
     """Subcommand for processing compounds."""
     pass
+
+
+@compounds.command()
+@click.help_option("--help", "-h")
+@click.argument("db-uri", metavar="<URI>")
+def reset(db_uri: str):
+    """
+    Reset the compound tables.
+
+    \b
+    URI is a string interpreted as an rfc1738 compatible database URI.
+
+    """
+    logger.info("Resetting compound tables...")
+    engine = create_engine(db_uri)
+    Base.metadata.drop_all(
+        bind=engine,
+        tables=[
+            CompoundAnnotation.__table__,
+            CompoundName.__table__,
+            Compound.__table__,
+        ],
+    )
+    Base.metadata.create_all(
+        bind=engine,
+        tables=[
+            CompoundAnnotation.__table__,
+            CompoundName.__table__,
+            Compound.__table__,
+        ],
+    )
 
 
 @compounds.command()

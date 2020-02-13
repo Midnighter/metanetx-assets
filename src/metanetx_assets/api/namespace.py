@@ -57,6 +57,7 @@ def transform_namespaces(
     models: List[Namespace] = []
     for prefix in tqdm(prefixes, desc="Namespace"):
         try:
+            # TODO: Use `orm_mode` here?
             models.append(Namespace(**namespace_mapping[prefix].dict()))
         except KeyError:
             model = patch_namespace(prefix)

@@ -41,7 +41,7 @@ from ..model import IdentifiersOrgNamespaceModel
 logger = logging.getLogger(__name__)
 
 
-def patch_namespace(prefix: Literal["envipath", "name"]) -> Optional[Namespace]:
+def patch_namespace(prefix: Literal["name"]) -> Optional[Namespace]:
     """Create an entry similar to a registry defined by identifiers.org."""
     if prefix == "name":
         logger.warning(
@@ -49,23 +49,8 @@ def patch_namespace(prefix: Literal["envipath", "name"]) -> Optional[Namespace]:
             "Ignored."
         )
         return None
-    kwargs = {"prefix": prefix, "embedded_prefix": False}
-    if prefix == "envipath":
-        logger.warning(
-            "The prefix 'envipath' is not yet contained in the Identifiers.org "
-            "registry. Creating a placeholder."
-        )
-        model = Namespace(
-            miriam_id="MIR:00000000",
-            name="enviPath",
-            pattern=r"^.+$",
-            description="A placeholder until envipath is added to the Identifiers.org "
-            "registry.",
-            **kwargs,
-        )
     else:
         raise ValueError(f"Unknown namespace prefix '{prefix}'.")
-    return model
 
 
 def extract_namespace_mapping(

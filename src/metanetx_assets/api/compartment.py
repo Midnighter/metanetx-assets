@@ -66,14 +66,16 @@ def etl_compartments(
                 index=False
             ):
                 logger.debug(row.mnx_id)
+                comp = Compartment()
                 # We first collect names and identifiers such that we insert only
                 # unique names per namespace.
                 names = {}
+                preferred_names = {}
                 identifiers = {}
-                comp = Compartment()
                 # We avoid NaN (missing) values here.
                 if isinstance(row.description, str):
                     names[row.prefix] = {n.strip() for n in row.description.split("|")}
+                    preferred_names.update(names[row.prefix])
                 identifiers["metanetx.compartment"] = {row.mnx_id}
                 identifiers.setdefault(row.prefix, set()).add(row.identifier)
                 # Expand names and identifiers with cross-references.
@@ -101,9 +103,22 @@ def etl_compartments(
                     except KeyError:
                         logger.error(f"Unknown prefix '{prefix}' encountered.")
                         continue
-                    name_models.extend(
-                        CompartmentName(name=n, namespace=namespace) for n in sub_names
-                    )
+                    # We set preferred names from the original row description which
+                    # only applies where the prefix is equal to the row's source prefix.
+                    if prefix == row.prefix:
+                        name_models.extend(
+                            CompartmentName(
+                                name=n,
+                                namespace=namespace,
+                                is_preferred=(n in preferred_names),
+                            )
+                            for n in sub_names
+                        )
+                    else:
+                        name_models.extend(
+                            CompartmentName(name=n, namespace=namespace)
+                            for n in sub_names
+                        )
                 comp.names = name_models
                 annotation = []
                 for prefix, sub_ids in identifiers.items():

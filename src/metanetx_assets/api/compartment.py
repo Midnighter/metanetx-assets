@@ -70,7 +70,7 @@ def etl_compartments(
                 # We first collect names and identifiers such that we insert only
                 # unique names per namespace.
                 names = {}
-                preferred_names = {}
+                preferred_names = set()
                 identifiers = {}
                 # We avoid NaN (missing) values here.
                 if isinstance(row.description, str):

@@ -126,6 +126,11 @@ def etl_compounds(
                 comp.names = name_models
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
+                    if prefix == "deprecated":
+                        is_deprecated = True
+                        prefix = "metanetx.chemical"
+                    else:
+                        is_deprecated = False
                     try:
                         namespace = mapping[prefix]
                     except KeyError:
@@ -136,6 +141,7 @@ def etl_compounds(
                             identifier=i,
                             namespace=namespace,
                             biology_qualifier=qualifier,
+                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                     )
@@ -205,6 +211,11 @@ def etl_compounds(
                 comp.names.extend(name_models)
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
+                    if prefix == "deprecated":
+                        is_deprecated = True
+                        prefix = "metanetx.chemical"
+                    else:
+                        is_deprecated = False
                     try:
                         namespace = mapping[prefix]
                     except KeyError:
@@ -216,6 +227,7 @@ def etl_compounds(
                             identifier=i,
                             namespace=namespace,
                             biology_qualifier=qualifier,
+                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                         if i not in existing

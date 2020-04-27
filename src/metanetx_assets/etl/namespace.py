@@ -48,7 +48,10 @@ def patch_namespace(prefix: Literal["name"]) -> Optional[Namespace]:
             "The prefix 'name' is not a namespace in the Identifiers.org registry. "
             "Ignored."
         )
-        return None
+        return
+    if prefix == "deprecated":
+        # These will be translated to the respective MetaNetX namespaces.
+        return
     else:
         raise ValueError(f"Unknown namespace prefix '{prefix}'.")
 

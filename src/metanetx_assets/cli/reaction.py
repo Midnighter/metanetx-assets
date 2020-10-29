@@ -100,7 +100,9 @@ def reset(db_uri: str):
     "reac-xref", metavar="<REAC_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
 def etl(
-    db_uri: str, reac_prop: click.Path, reac_xref: click.Path,
+    db_uri: str,
+    reac_prop: click.Path,
+    reac_xref: click.Path,
 ):
     """
     Extract, transform, and load the reactions used in MetaNetX.

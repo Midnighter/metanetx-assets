@@ -100,7 +100,9 @@ def reset(db_uri: str):
     "comp-xref", metavar="<COMP_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
 def etl(
-    db_uri: str, comp_prop: click.Path, comp_xref: click.Path,
+    db_uri: str,
+    comp_prop: click.Path,
+    comp_xref: click.Path,
 ):
     """
     Extract, transform, and load the compartments used in MetaNetX.

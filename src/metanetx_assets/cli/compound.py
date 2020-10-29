@@ -100,7 +100,9 @@ def reset(db_uri: str):
     "chem-xref", metavar="<CHEM_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
 def etl(
-    db_uri: str, chem_prop: click.Path, chem_xref: click.Path,
+    db_uri: str,
+    chem_prop: click.Path,
+    chem_xref: click.Path,
 ):
     """
     Extract, transform, and load the compounds used in MetaNetX.

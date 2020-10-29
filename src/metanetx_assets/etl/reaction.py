@@ -27,9 +27,7 @@ logger = logging.getLogger()
 
 
 class EquationParser:
-    """
-
-    """
+    """"""
 
     compound = pp.Regex(r"MNXM\d+") | pp.Keyword("BIOMASS")
     compound.setName("compound")

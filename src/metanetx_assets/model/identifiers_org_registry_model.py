@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+"""Provide data validation models for the Identifiers.org namespaces."""
+
+
 from typing import List, Optional
 
 from pydantic import BaseModel, Field

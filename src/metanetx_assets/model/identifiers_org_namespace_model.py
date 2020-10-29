@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+"""Provide data validation for the Identifiers.org namespaces."""
+
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field

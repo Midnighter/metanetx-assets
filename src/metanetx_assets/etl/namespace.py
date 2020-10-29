@@ -82,6 +82,7 @@ def extract_namespace_mapping(
 
 def get_unique_prefixes(data_frame: pd.DataFrame) -> Set[str]:
     """
+    Return a set of namespace prefixes.
 
     Parameters
     ----------
@@ -104,6 +105,7 @@ def get_required_prefixes(
     reac_xref: pd.DataFrame,
 ) -> Set[str]:
     """
+    Return tho set of prefixes used across all of MetaNetx.
 
     Parameters
     ----------

@@ -27,7 +27,7 @@ logger = logging.getLogger()
 
 
 class EquationParser:
-    """"""
+    """Define a parser for MetaNetX reaction equations."""
 
     compound = pp.Regex(r"MNXM\d+") | pp.Keyword("BIOMASS")
     compound.setName("compound")

@@ -54,6 +54,7 @@ def download_namespace_mapping(
 def transform_namespaces(
     namespace_mapping: Dict[str, IdentifiersOrgNamespaceModel], prefixes: Set[str]
 ):
+    """Transform namespace data models from Identifiers.org to the local schema."""
     models: List[Namespace] = []
     for prefix in tqdm(prefixes, desc="Namespace"):
         try:

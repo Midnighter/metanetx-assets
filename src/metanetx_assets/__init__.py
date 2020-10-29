@@ -18,10 +18,6 @@
 
 __author__ = "Moritz E. Beber"
 __email__ = "midnighter@posteo.net"
-from metanetx_assets._version import get_versions
-
-__version__ = get_versions()["version"]
-del get_versions
 
 
 from metanetx_assets.helpers import show_versions

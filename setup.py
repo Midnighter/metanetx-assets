@@ -16,7 +16,7 @@
 # limitations under the License.
 
 
-"""Set up the MetaNetX Assets package."""
+"""Set up the MetaNetX assets package."""
 
 
 import versioneer

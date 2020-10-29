@@ -1,13 +1,17 @@
-.PHONY: qa
-
 ################################################################################
 # COMMANDS                                                                     #
 ################################################################################
 
+.PHONY: qa
 ## Apply code quality assurance tools.
 qa:
-	isort --recursive src/metanetx_assets tests/ setup.py
+	isort src/metanetx_assets tests/ setup.py
 	black src/metanetx_assets tests/ setup.py
+
+.PHONY: release
+## Prepare a release by generating the automatic code documentation.
+release:
+	sphinx-apidoc -f -o docs/source/autogen src/metanetx_assets
 
 ################################################################################
 # Self Documenting Commands                                                    #

@@ -21,7 +21,6 @@ from typing import Dict
 
 import pandas as pd
 from cobra_component_models.orm import (
-    BiologyQualifier,
     Compartment,
     CompartmentAnnotation,
     CompartmentName,
@@ -40,7 +39,6 @@ def etl_compartments(
     compartments: pd.DataFrame,
     cross_references: pd.DataFrame,
     mapping: Dict[str, Namespace],
-    qualifier: BiologyQualifier,
     batch_size: int = 1000,
 ):
     """
@@ -52,7 +50,6 @@ def etl_compartments(
     compartments
     cross_references
     mapping
-    qualifier
     batch_size : int
 
     """
@@ -136,7 +133,6 @@ def etl_compartments(
                         CompartmentAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            biology_qualifier=qualifier,
                             is_deprecated=is_deprecated,
                         )
                         for i in sub_ids

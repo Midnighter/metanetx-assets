@@ -79,7 +79,7 @@ def reset(db_uri: str):
     \b
     URI is a string interpreted as an rfc1738 compatible database URI.
 
-    """
+    """  # noqa: D301
     logger.info("Resetting namespace tables...")
     engine = create_engine(db_uri)
     Base.metadata.drop_all(bind=engine, tables=[Namespace.__table__])
@@ -133,7 +133,7 @@ def etl(
     REAC_PROP is a MetaNetX table with reaction property information.
     REAC_XREF is a MetaNetX table with reaction cross-references.
 
-    """
+    """  # noqa: D301
     engine = create_engine(db_uri)
     session = Session(bind=engine)
     logger.info("Extracting...")

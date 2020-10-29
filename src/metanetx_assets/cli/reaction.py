@@ -33,7 +33,6 @@ from pathlib import Path
 import click
 from cobra_component_models.orm import (
     Base,
-    BiologyQualifier,
     Namespace,
     Reaction,
     ReactionAnnotation,
@@ -69,7 +68,7 @@ def reset(db_uri: str):
     \b
     URI is a string interpreted as an rfc1738 compatible database URI.
 
-    """
+    """  # noqa: D301
     logger.info("Resetting reaction tables...")
     engine = create_engine(db_uri)
     Base.metadata.drop_all(
@@ -112,14 +111,13 @@ def etl(
     REAC_PROP is a MetaNetX table with reaction property information.
     REAC_XREF is a MetaNetX table with reaction cross-references.
 
-    """
+    """  # noqa: D301
     engine = create_engine(db_uri)
     session = Session(bind=engine)
     logger.info("Extracting...")
     reactions = extract_table(Path(reac_prop))
     cross_references = extract_table(Path(reac_xref))
     namespace_mapping = Namespace.get_map(session)
-    qualifier_mapping = BiologyQualifier.get_map(session)
     logger.info("Transforming...")
     logger.info("Loading...")
     etl_reactions(
@@ -127,5 +125,4 @@ def etl(
         reactions,
         cross_references,
         namespace_mapping,
-        qualifier_mapping["is"],
     )

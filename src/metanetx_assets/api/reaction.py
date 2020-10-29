@@ -21,13 +21,11 @@ from typing import Dict
 
 import pandas as pd
 from cobra_component_models.orm import (
-    BiologyQualifier,
     CompartmentAnnotation,
     CompoundAnnotation,
     Namespace,
     Reaction,
     ReactionAnnotation,
-    ReactionName,
 )
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
@@ -44,7 +42,6 @@ def etl_reactions(
     reactions: pd.DataFrame,
     cross_references: pd.DataFrame,
     namespace_mapping: Dict[str, Namespace],
-    qualifier: BiologyQualifier,
     batch_size: int = 1000,
 ):
     """
@@ -56,7 +53,6 @@ def etl_reactions(
     reactions
     cross_references
     namespace_mapping
-    qualifier
     batch_size : int
 
     """
@@ -131,7 +127,6 @@ def etl_reactions(
                         ReactionAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            biology_qualifier=qualifier,
                             is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
@@ -141,5 +136,3 @@ def etl_reactions(
             session.add_all(models)
             session.commit()
             pbar.update(len(models))
-    # TODO: Parse more names, for example, using EC-codes.
-    #  Find more in etl/generate_reaction_names.py

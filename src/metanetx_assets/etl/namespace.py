@@ -29,7 +29,7 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, Literal, Optional, Set
+from typing import Dict, Optional, Set
 
 import pandas as pd
 from cobra_component_models.orm import Namespace
@@ -41,19 +41,24 @@ from ..model import IdentifiersOrgNamespaceModel
 logger = logging.getLogger(__name__)
 
 
-def patch_namespace(prefix: Literal["name"]) -> Optional[Namespace]:
+_MIRIAM_COUNTER = 99999999
+
+
+def patch_namespace(prefix: str) -> Optional[Namespace]:
     """Create an entry similar to a registry defined by identifiers.org."""
-    if prefix == "name":
-        logger.warning(
-            "The prefix 'name' is not a namespace in the Identifiers.org registry. "
-            "Ignored."
-        )
-        return
-    if prefix == "deprecated":
-        # These will be translated to the respective MetaNetX namespaces.
-        return
-    else:
-        raise ValueError(f"Unknown namespace prefix '{prefix}'.")
+    global _MIRIAM_COUNTER
+    logger.warning(
+        "The prefix '%s' is not a namespace in the Identifiers.org registry. "
+        "Adding dummy entry.",
+        prefix,
+    )
+    _MIRIAM_COUNTER -= 1
+    return Namespace(
+        pattern="^.+$",
+        prefix=prefix,
+        miriam_id=f"MIR:{_MIRIAM_COUNTER}",
+        description="A dummy namespace entry.",
+    )
 
 
 def extract_namespace_mapping(

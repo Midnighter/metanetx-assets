@@ -38,6 +38,7 @@ def etl_compartments(
     session: Session,
     compartments: pd.DataFrame,
     cross_references: pd.DataFrame,
+    deprecated: pd.DataFrame,
     mapping: Dict[str, Namespace],
     batch_size: int = 1000,
 ):
@@ -49,6 +50,7 @@ def etl_compartments(
     session
     compartments
     cross_references
+    deprecated
     mapping
     batch_size : int
 
@@ -56,6 +58,7 @@ def etl_compartments(
     # TODO: This is a first draft of the function. Parts should be refactored to the
     #  etl sub-package so that they can be tested better.
     grouped_xref = cross_references.groupby("mnx_id", sort=False)
+    grouped_deprecated = deprecated.groupby("current_id", sort=False)
     with tqdm(total=len(compartments), desc="Compartment") as pbar:
         for index in range(0, len(compartments), batch_size):
             models = []
@@ -70,30 +73,26 @@ def etl_compartments(
                 preferred_names = set()
                 identifiers = {}
                 # We avoid NaN (missing) values here.
-                if isinstance(row.description, str):
-                    names[row.prefix] = {n.strip() for n in row.description.split("|")}
+                if isinstance(row.name, str):
+                    names[row.prefix] = {n.strip() for n in row.name.split("||")}
                     preferred_names.update(names[row.prefix])
                 identifiers["metanetx.compartment"] = {row.mnx_id}
                 identifiers.setdefault(row.prefix, set()).add(row.identifier)
-                # Expand names and identifiers with cross-references.
-                for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
-                    index=False
-                ):
-                    # We avoid NaN (missing) values here.
-                    if isinstance(xref_row.description, str):
-                        names.setdefault(xref_row.prefix, set()).update(
-                            (n.strip() for n in xref_row.description.split("|"))
-                        )
-                    # MetaNetX uses a 'name' prefix for some cross-references.
-                    if xref_row.prefix == "name":
-                        names.setdefault(xref_row.prefix, set()).add(
-                            xref_row.identifier
-                        )
-                    else:
+                if row.mnx_id in grouped_xref.groups:
+                    # Expand names and identifiers with cross-references.
+                    for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        # We avoid NaN (missing) values here.
+                        if isinstance(xref_row.description, str):
+                            names.setdefault(xref_row.prefix, set()).update(
+                                (n.strip() for n in xref_row.description.split("||"))
+                            )
+                        # Set cross-references on identifiers.
                         identifiers.setdefault(xref_row.prefix, set()).add(
                             xref_row.identifier
                         )
-                name_models = [CompartmentName(name=n) for n in names.pop("name", [])]
+                name_models = []
                 for prefix, sub_names in names.items():
                     try:
                         namespace = mapping[prefix]
@@ -119,11 +118,6 @@ def etl_compartments(
                 comp.names = name_models
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
-                    if prefix == "deprecated":
-                        is_deprecated = True
-                        prefix = "metanetx.compartment"
-                    else:
-                        is_deprecated = False
                     try:
                         namespace = mapping[prefix]
                     except KeyError:
@@ -133,10 +127,22 @@ def etl_compartments(
                         CompartmentAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                     )
+                if row.mnx_id in grouped_deprecated.groups:
+                    # Add deprecated MetaNetX identifiers.
+                    namespace = mapping["metanetx.compartment"]
+                    for depr_row in grouped_deprecated.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        annotation.append(
+                            CompartmentAnnotation(
+                                identifier=depr_row.deprecated_id,
+                                namespace=namespace,
+                                is_deprecated=True,
+                            )
+                        )
                 comp.annotation = annotation
                 models.append(comp)
             session.add_all(models)

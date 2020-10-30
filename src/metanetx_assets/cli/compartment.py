@@ -98,10 +98,14 @@ def reset(db_uri: str):
 @click.argument(
     "comp-xref", metavar="<COMP_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
+@click.argument(
+    "comp-depr", metavar="<COMP_DEPR>", type=click.Path(exists=True, dir_okay=False)
+)
 def etl(
     db_uri: str,
     comp_prop: click.Path,
     comp_xref: click.Path,
+    comp_depr: click.Path,
 ):
     """
     Extract, transform, and load the compartments used in MetaNetX.
@@ -110,6 +114,7 @@ def etl(
     URI is a string interpreted as an rfc1738 compatible database URI.
     COMP_PROP is a MetaNetX table with compartment property information.
     COMP_XREF is a MetaNetX table with compartment cross-references.
+    COMP_DEPR is a MetaNetX table with deprecated compartment identifiers.
 
     """  # noqa: D301
     engine = create_engine(db_uri)
@@ -117,12 +122,13 @@ def etl(
     logger.info("Extracting...")
     compartments = extract_table(Path(comp_prop))
     cross_references = extract_table(Path(comp_xref))
+    deprecated = extract_table(Path(comp_depr))
     namespace_mapping = Namespace.get_map(session)
-    logger.info("Transforming...")
-    logger.info("Loading...")
+    logger.info("Transforming & Loading...")
     etl_compartments(
         session,
         compartments,
         cross_references,
+        deprecated,
         namespace_mapping,
     )

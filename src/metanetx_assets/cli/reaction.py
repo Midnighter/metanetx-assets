@@ -98,10 +98,14 @@ def reset(db_uri: str):
 @click.argument(
     "reac-xref", metavar="<REAC_XREF>", type=click.Path(exists=True, dir_okay=False)
 )
+@click.argument(
+    "reac-depr", metavar="<REAC_DEPR>", type=click.Path(exists=True, dir_okay=False)
+)
 def etl(
     db_uri: str,
     reac_prop: click.Path,
     reac_xref: click.Path,
+    reac_depr: click.Path,
 ):
     """
     Extract, transform, and load the reactions used in MetaNetX.
@@ -110,6 +114,7 @@ def etl(
     URI is a string interpreted as an rfc1738 compatible database URI.
     REAC_PROP is a MetaNetX table with reaction property information.
     REAC_XREF is a MetaNetX table with reaction cross-references.
+    REAC_DEPR is a MetaNetX table with deprecated reaction identifiers.
 
     """  # noqa: D301
     engine = create_engine(db_uri)
@@ -117,12 +122,13 @@ def etl(
     logger.info("Extracting...")
     reactions = extract_table(Path(reac_prop))
     cross_references = extract_table(Path(reac_xref))
+    deprecated = extract_table(Path(reac_depr))
     namespace_mapping = Namespace.get_map(session)
-    logger.info("Transforming...")
-    logger.info("Loading...")
+    logger.info("Transforming & Loading...")
     etl_reactions(
         session,
         reactions,
         cross_references,
+        deprecated,
         namespace_mapping,
     )

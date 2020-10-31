@@ -29,7 +29,7 @@ logger = logging.getLogger()
 class EquationParser:
     """Define a parser for MetaNetX reaction equations."""
 
-    compound = pp.Regex(r"MNXM\d+") | pp.Keyword("BIOMASS")
+    compound = pp.Regex(r"MNXM\d+") | pp.Keyword("WATER") | pp.Keyword("BIOMASS")
     compound.setName("compound")
     compound.__doc__ = """
     """
@@ -44,10 +44,9 @@ class EquationParser:
     compartment.__doc__ = """
     """
 
+    number = pp.Word(pp.nums + "Ee+-")
     coefficient = pp.originalTextFor(
-        pp.Word(pp.nums)
-        ^ pp.Combine(pp.Word(pp.nums) + "." + pp.Word(pp.nums))
-        ^ pp.nestedExpr(ignoreExpr=None)
+        number ^ pp.Combine(number + "." + number) ^ pp.nestedExpr(ignoreExpr=None)
     )
     coefficient.setName("coefficient")
     coefficient.__doc__ = """
@@ -64,9 +63,9 @@ class EquationParser:
     """
 
     reaction = (
-        pp.Group(pp.delimitedList(participant, delim="+"))("substrates")
+        pp.Optional(pp.Group(pp.delimitedList(participant, delim="+"))("substrates"))
         + "="
-        + pp.Group(pp.delimitedList(participant, delim="+"))("products")
+        + pp.Optional(pp.Group(pp.delimitedList(participant, delim="+"))("products"))
     )
     reaction.setName("reaction")
     reaction.__doc__ = """

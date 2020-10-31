@@ -26,6 +26,7 @@ from cobra_component_models.orm import (
     Namespace,
     Reaction,
     ReactionAnnotation,
+    ReactionName,
 )
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
@@ -41,17 +42,19 @@ def etl_reactions(
     session: Session,
     reactions: pd.DataFrame,
     cross_references: pd.DataFrame,
+    deprecated: pd.DataFrame,
     namespace_mapping: Dict[str, Namespace],
     batch_size: int = 1000,
 ):
     """
-    Load compartment information into a database.
+    Load reaction information into a database.
 
     Parameters
     ----------
     session
     reactions
     cross_references
+    deprecated
     namespace_mapping
     batch_size : int
 
@@ -85,7 +88,11 @@ def etl_reactions(
         # 1000 is a good value according to the documentation at
         # https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.yield_per
     }
+    # Transform the Boolean columns to Boolean values.
+    reactions["is_balanced"] = reactions["is_balanced"] == "B"
+    reactions["is_transport"] = reactions["is_transport"] == "T"
     grouped_xref = cross_references.groupby("mnx_id", sort=False)
+    grouped_deprecated = deprecated.groupby("current_id", sort=False)
     with tqdm(total=len(reactions), desc="Reaction") as pbar:
         for index in range(0, len(reactions), batch_size):
             models = []
@@ -104,20 +111,37 @@ def etl_reactions(
                 if isinstance(row.ec_number, str):
                     identifiers["ec-code"] = {row.ec_number}
                 identifiers.setdefault(row.prefix, set()).add(row.identifier)
-                # Expand identifiers with cross-references.
-                for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
-                    index=False
-                ):
-                    identifiers.setdefault(xref_row.prefix, set()).add(
-                        xref_row.identifier
+                names = {}
+                if row.mnx_id in grouped_xref.groups:
+                    # Expand identifiers with cross-references.
+                    for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        # We avoid NaN (missing) values here.
+                        if isinstance(xref_row.description, str):
+                            names.setdefault(xref_row.prefix, set()).update(
+                                (n.strip() for n in xref_row.description.split("||"))
+                            )
+                        identifiers.setdefault(xref_row.prefix, set()).add(
+                            xref_row.identifier
+                        )
+                name_models = []
+                for prefix, sub_names in names.items():
+                    try:
+                        namespace = namespace_mapping[prefix]
+                    except KeyError:
+                        logger.error(f"Unknown prefix '{prefix}' encountered.")
+                        continue
+                    name_models.extend(
+                        ReactionName(
+                            name=n,
+                            namespace=namespace,
+                        )
+                        for n in sub_names
                     )
+                reaction.names = name_models
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
-                    if prefix == "deprecated":
-                        is_deprecated = True
-                        prefix = "metanetx.reaction"
-                    else:
-                        is_deprecated = False
                     try:
                         namespace = namespace_mapping[prefix]
                     except KeyError:
@@ -127,10 +151,22 @@ def etl_reactions(
                         ReactionAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                     )
+                if row.mnx_id in grouped_deprecated.groups:
+                    # Add deprecated MetaNetX identifiers.
+                    namespace = namespace_mapping["metanetx.chemical"]
+                    for depr_row in grouped_deprecated.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        annotation.append(
+                            ReactionAnnotation(
+                                identifier=depr_row.deprecated_id,
+                                namespace=namespace,
+                                is_deprecated=True,
+                            )
+                        )
                 reaction.annotation = annotation
                 models.append(reaction)
             session.add_all(models)

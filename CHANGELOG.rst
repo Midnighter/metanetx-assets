@@ -5,6 +5,10 @@ History
 Next Release
 ------------
 
+4.1.0 (2020-10-31)
+------------------
+* Adjust to MetaNetX release 4.1.
+
 0.2.1 (2020-04-27)
 ------------------
 * Correctly handle deprecated identifiers in all cases.

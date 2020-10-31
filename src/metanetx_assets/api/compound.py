@@ -38,24 +38,29 @@ def etl_compounds(
     session: Session,
     compounds: pd.DataFrame,
     cross_references: pd.DataFrame,
+    deprecated: pd.DataFrame,
     mapping: Dict[str, Namespace],
     batch_size: int = 1000,
 ):
     """
-    Load compartment information into a database.
+    Load compound information into a database.
 
     Parameters
     ----------
     session
     compounds
     cross_references
+    deprecated
     mapping
     batch_size : int
 
     """
     # TODO: This is a first draft of the function. Parts should be refactored to the
     #  etl sub-package so that they can be tested better.
+    # New tables include an `InChIKey=` prefix which we remove.
+    compounds["inchi_key"] = compounds["inchi_key"].str[len("InChIKey=") :]
     grouped_xref = cross_references.groupby("mnx_id", sort=False)
+    grouped_deprecated = deprecated.groupby("current_id", sort=False)
     # The InChI field (and thus also InChIKey) must be unique since it is the same
     # structure.
     is_duplicated = compounds.duplicated("inchi_key") & compounds["inchi_key"].notnull()
@@ -79,25 +84,26 @@ def etl_compounds(
                 # unique names per namespace.
                 names = {}
                 preferred_names = set()
-                identifiers = {}
                 # We avoid NaN (missing) values here.
-                if isinstance(row.description, str):
-                    names[row.prefix] = {n.strip() for n in row.description.split("|")}
+                if isinstance(row.name, str):
+                    names[row.prefix] = {n.strip() for n in row.name.split("||")}
                     preferred_names.update(names[row.prefix])
+                identifiers = {}
                 identifiers["metanetx.chemical"] = {row.mnx_id}
                 identifiers.setdefault(row.prefix, set()).add(row.identifier)
-                # Expand names and identifiers with cross-references.
-                for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
-                    index=False
-                ):
-                    # We avoid NaN (missing) values here.
-                    if isinstance(xref_row.description, str):
-                        names.setdefault(xref_row.prefix, set()).update(
-                            (n.strip() for n in xref_row.description.split("|"))
+                if row.mnx_id in grouped_xref.groups:
+                    # Expand names and identifiers with cross-references.
+                    for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        # We avoid NaN (missing) values here.
+                        if isinstance(xref_row.description, str):
+                            names.setdefault(xref_row.prefix, set()).update(
+                                (n.strip() for n in xref_row.description.split("||"))
+                            )
+                        identifiers.setdefault(xref_row.prefix, set()).add(
+                            xref_row.identifier
                         )
-                    identifiers.setdefault(xref_row.prefix, set()).add(
-                        xref_row.identifier
-                    )
                 name_models = []
                 for prefix, sub_names in names.items():
                     try:
@@ -123,11 +129,6 @@ def etl_compounds(
                 comp.names = name_models
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
-                    if prefix == "deprecated":
-                        is_deprecated = True
-                        prefix = "metanetx.chemical"
-                    else:
-                        is_deprecated = False
                     try:
                         namespace = mapping[prefix]
                     except KeyError:
@@ -137,10 +138,22 @@ def etl_compounds(
                         CompoundAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                     )
+                if row.mnx_id in grouped_deprecated.groups:
+                    # Add deprecated MetaNetX identifiers.
+                    namespace = mapping["metanetx.chemical"]
+                    for depr_row in grouped_deprecated.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        annotation.append(
+                            CompoundAnnotation(
+                                identifier=depr_row.deprecated_id,
+                                namespace=namespace,
+                                is_deprecated=True,
+                            )
+                        )
                 comp.annotation = annotation
                 models.append(comp)
             session.add_all(models)
@@ -158,6 +171,8 @@ def etl_compounds(
                 comp = (
                     session.query(Compound)
                     .filter(Compound.inchi_key == row.inchi_key)
+                    .join(CompoundAnnotation)
+                    .join(CompoundName)
                     .one()
                 )
                 existing_names = {}
@@ -175,22 +190,23 @@ def etl_compounds(
                 names = {}
                 identifiers = {}
                 # We avoid NaN (missing) values here.
-                if isinstance(row.description, str):
-                    names[row.prefix] = {n.strip() for n in row.description.split("|")}
+                if isinstance(row.name, str):
+                    names[row.prefix] = {n.strip() for n in row.name.split("||")}
                 identifiers["metanetx.chemical"] = {row.mnx_id}
                 identifiers.setdefault(row.prefix, set()).add(row.identifier)
-                # Expand names and identifiers with cross-references.
-                for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
-                    index=False
-                ):
-                    # We avoid NaN (missing) values here.
-                    if isinstance(xref_row.description, str):
-                        names.setdefault(xref_row.prefix, set()).update(
-                            (n.strip() for n in xref_row.description.split("|"))
+                if row.mnx_id in grouped_xref.groups:
+                    # Expand names and identifiers with cross-references.
+                    for xref_row in grouped_xref.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        # We avoid NaN (missing) values here.
+                        if isinstance(xref_row.description, str):
+                            names.setdefault(xref_row.prefix, set()).update(
+                                (n.strip() for n in xref_row.description.split("||"))
+                            )
+                        identifiers.setdefault(xref_row.prefix, set()).add(
+                            xref_row.identifier
                         )
-                    identifiers.setdefault(xref_row.prefix, set()).add(
-                        xref_row.identifier
-                    )
                 name_models = []
                 for prefix, sub_names in names.items():
                     try:
@@ -207,11 +223,6 @@ def etl_compounds(
                 comp.names.extend(name_models)
                 annotation = []
                 for prefix, sub_ids in identifiers.items():
-                    if prefix == "deprecated":
-                        is_deprecated = True
-                        prefix = "metanetx.chemical"
-                    else:
-                        is_deprecated = False
                     try:
                         namespace = mapping[prefix]
                     except KeyError:
@@ -222,13 +233,28 @@ def etl_compounds(
                         CompoundAnnotation(
                             identifier=i,
                             namespace=namespace,
-                            is_deprecated=is_deprecated,
                         )
                         for i in sub_ids
                         if i not in existing
                     )
+                if row.mnx_id in grouped_deprecated.groups:
+                    # Add deprecated MetaNetX identifiers.
+                    prefix = "metanetx.chemical"
+                    namespace = mapping[prefix]
+                    for depr_row in grouped_deprecated.get_group(row.mnx_id).itertuples(
+                        index=False
+                    ):
+                        existing = existing_annotation.get(prefix, frozenset())
+                        if depr_row.deprecated_id in existing:
+                            continue
+                        annotation.append(
+                            CompoundAnnotation(
+                                identifier=depr_row.deprecated_id,
+                                namespace=namespace,
+                                is_deprecated=True,
+                            )
+                        )
                 comp.annotation.extend(annotation)
-                models.append(comp)
-            session.add_all(models)
-            session.commit()
-            pbar.update(len(models))
+                session.add(comp)
+                session.commit()
+                pbar.update()

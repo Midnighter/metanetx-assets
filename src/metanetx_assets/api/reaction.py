@@ -93,7 +93,7 @@ def etl_reactions(
     reactions["is_transport"] = reactions["is_transport"] == "T"
     grouped_xref = cross_references.groupby("mnx_id", sort=False)
     grouped_deprecated = deprecated.groupby("current_id", sort=False)
-    with tqdm(total=len(reactions), desc="Reaction") as pbar:
+    with tqdm(total=len(reactions), desc="Reaction", unit_scale=True) as pbar:
         for index in range(0, len(reactions), batch_size):
             models = []
             for row in reactions.iloc[index : index + batch_size, :].itertuples(

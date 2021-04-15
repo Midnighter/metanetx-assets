@@ -65,7 +65,7 @@ def etl_compounds(
     # structure.
     is_duplicated = compounds.duplicated("inchi_key") & compounds["inchi_key"].notnull()
     deduped = compounds.loc[~is_duplicated, :]
-    with tqdm(total=len(deduped), desc="Compound") as pbar:
+    with tqdm(total=len(deduped), desc="Compound", unit_scale=True) as pbar:
         for index in range(0, len(deduped), batch_size):
             models = []
             for row in deduped.iloc[index : index + batch_size, :].itertuples(

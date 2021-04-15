@@ -59,7 +59,7 @@ def etl_compartments(
     #  etl sub-package so that they can be tested better.
     grouped_xref = cross_references.groupby("mnx_id", sort=False)
     grouped_deprecated = deprecated.groupby("current_id", sort=False)
-    with tqdm(total=len(compartments), desc="Compartment") as pbar:
+    with tqdm(total=len(compartments), desc="Compartment", unit_scale=True) as pbar:
         for index in range(0, len(compartments), batch_size):
             models = []
             for row in compartments.iloc[index : index + batch_size, :].itertuples(

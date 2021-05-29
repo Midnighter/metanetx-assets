@@ -156,7 +156,7 @@ def etl_reactions(
                     )
                 if row.mnx_id in grouped_deprecated.groups:
                     # Add deprecated MetaNetX identifiers.
-                    namespace = namespace_mapping["metanetx.chemical"]
+                    namespace = namespace_mapping["metanetx.reaction"]
                     for depr_row in grouped_deprecated.get_group(row.mnx_id).itertuples(
                         index=False
                     ):

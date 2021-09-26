@@ -5,6 +5,10 @@ History
 Next Release
 ------------
 
+4.2.0 (2021-09-26)
+------------------
+* Adjust to MetaNetX release 4.2.
+
 4.1.0 (2020-10-31)
 ------------------
 * Adjust to MetaNetX release 4.1.
